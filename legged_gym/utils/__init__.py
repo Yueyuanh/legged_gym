@@ -33,3 +33,5 @@ from .task_registry import task_registry
 from .logger import Logger
 from .math import *
 from .terrain import Terrain
+from .projectile_manager import ProjectileManager
+from .keyboard_commander import KeyboardCommander

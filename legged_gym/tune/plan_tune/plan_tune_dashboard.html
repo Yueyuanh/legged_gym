@@ -1,0 +1,1838 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan Tune</title>
+  <style>
+    :root {
+      --bg: #0b1117;
+      --panel: #111c26;
+      --panel2: #172532;
+      --line: #2a4056;
+      --text: #edf4fb;
+      --muted: #9fb2c7;
+      --accent: #4dd0e1;
+      --good: #8bd38b;
+      --warn: #f7c46b;
+      --bad: #ff8f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, Arial, sans-serif;
+      padding: 18px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+      min-width: 0;
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    h1 { margin: 0 0 6px; font-size: 30px; }
+    h2 { margin: 0 0 10px; font-size: 19px; }
+    .muted { color: var(--muted); }
+    .status {
+      color: var(--accent);
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 50vw;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .top-grid {
+      display: grid;
+      grid-template-columns: 220px 1fr 1.4fr 120px 120px 150px;
+      gap: 12px;
+      min-width: 0;
+    }
+    .load-grid {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: end;
+      margin-top: 12px;
+      min-width: 0;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: stretch;
+      margin-top: 14px;
+      min-height: calc(100vh - 330px);
+      min-width: 0;
+    }
+    .main-grid > .panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .panel-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+      min-height: 30px;
+      min-width: 0;
+    }
+    .panel-heading h2 {
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .create-grid {
+      display: grid;
+      grid-template-columns: 1fr 160px auto auto;
+      gap: 12px;
+      align-items: end;
+      min-width: 0;
+    }
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+      min-height: calc(100vh - 290px);
+      min-width: 0;
+      align-items: stretch;
+    }
+    .results-grid > .panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input, select {
+      width: 100%;
+      height: 34px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 10px;
+      min-width: 0;
+    }
+    input[type="checkbox"] { width: auto; height: auto; }
+    button {
+      height: 36px;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #071014;
+      border-radius: 6px;
+      padding: 0 14px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button.good { background: var(--good); border-color: var(--good); }
+    button.warn { background: var(--warn); border-color: var(--warn); }
+    button.danger {
+      background: var(--bad);
+      border-color: var(--bad);
+      color: #1b0709;
+      height: 28px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+    button.small {
+      height: 30px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    button.active {
+      background: var(--good);
+      border-color: var(--good);
+      color: #071014;
+    }
+    .view { display: none; }
+    .view.active { display: block; }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(3, 8, 13, 0.62);
+      z-index: 30;
+      padding: 24px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .range-modal {
+      width: min(980px, calc(100vw - 48px));
+      max-height: min(760px, calc(100vh - 48px));
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    }
+    .range-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .range-modal-body {
+      overflow: auto;
+      padding: 16px;
+      min-height: 0;
+    }
+    .range-help {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin-bottom: 14px;
+    }
+    .range-row {
+      display: grid;
+      grid-template-columns: minmax(190px, 1fr) repeat(3, minmax(88px, 112px)) 44px;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 12px;
+      min-width: 0;
+    }
+    .range-row.nested {
+      margin-left: 28px;
+      padding-left: 14px;
+      border-left: 2px solid var(--line);
+    }
+    .range-modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--line);
+    }
+    .range-modal-footer .message {
+      white-space: normal;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .views-modal {
+      width: min(1080px, calc(100vw - 48px));
+      height: min(820px, calc(100vh - 48px));
+      max-height: calc(100vh - 48px);
+    }
+    .views-modal .range-modal-body {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .views-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+      flex: 0 0 auto;
+    }
+    .views-card {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .views-tree {
+      display: grid;
+      gap: 10px;
+      overflow: auto;
+      padding-right: 4px;
+      flex: 1;
+      min-height: 0;
+      align-content: start;
+    }
+    .views-node {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .views-node details {
+      min-width: 0;
+    }
+    .views-node summary {
+      cursor: pointer;
+      color: var(--text);
+      font-weight: 700;
+      min-width: 0;
+      list-style-position: inside;
+    }
+    .views-summary-line {
+      display: inline-grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      width: calc(100% - 22px);
+      vertical-align: middle;
+      min-width: 0;
+    }
+    .views-summary-line span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .views-children {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+      padding-left: 18px;
+      border-left: 1px solid rgba(42, 64, 86, 0.72);
+      min-width: 0;
+    }
+    .views-range-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .views-range-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: baseline;
+      padding: 8px 10px;
+      border: 1px solid rgba(42, 64, 86, 0.65);
+      border-radius: 5px;
+      font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      background: rgba(11, 17, 23, 0.62);
+      min-width: 0;
+    }
+    .views-range-row div {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .views-count {
+      color: var(--accent);
+      font-family: Inter, Arial, sans-serif;
+      font-weight: 700;
+    }
+    .views-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-width: 0;
+    }
+    .views-value-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text);
+      font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      margin: 0;
+      padding: 2px 6px;
+      border: 1px solid rgba(42, 64, 86, 0.85);
+      border-radius: 4px;
+      background: rgba(11, 17, 23, 0.7);
+      max-width: 100%;
+    }
+    .views-value-check input {
+      width: auto;
+      height: auto;
+      margin: 0;
+    }
+    .views-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--line);
+      flex: 0 0 auto;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+      min-width: 0;
+    }
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      color: var(--accent);
+      font-size: 24px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .stat-sub {
+      color: var(--text);
+      font-size: 13px;
+      margin-top: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .progress-track {
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #173243;
+      border: 1px solid var(--line);
+      margin-top: 8px;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--good));
+      transition: width 0.25s ease;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 12px;
+      font-size: 13px;
+      min-width: 0;
+    }
+    .detail-item {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .message-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+      min-width: 0;
+    }
+    .message {
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-height: 18px;
+    }
+    .selected-label {
+      color: var(--accent);
+      font-size: 13px;
+      min-height: 18px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .table-wrap {
+      height: 640px;
+      overflow: auto;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .main-grid .table-wrap {
+      flex: 1;
+      height: auto;
+      min-height: 520px;
+    }
+    .sequence-wrap {
+      overflow: auto;
+    }
+    .sequence-table {
+      min-width: 920px;
+      width: max(100%, 920px);
+    }
+    .progress-table-wrap {
+      height: 300px;
+      flex: 0 0 300px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 7px 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      height: 32px;
+    }
+    th {
+      background: var(--panel2);
+      color: var(--text);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      text-align: left;
+    }
+    th.resizable {
+      position: sticky;
+      user-select: none;
+    }
+    .resize-handle {
+      position: absolute;
+      top: 0;
+      right: -3px;
+      width: 8px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 4;
+    }
+    .resize-handle::after {
+      content: "";
+      position: absolute;
+      top: 7px;
+      bottom: 7px;
+      left: 3px;
+      width: 1px;
+      background: rgba(237, 244, 251, 0.35);
+    }
+    td.mono { font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace; }
+    td input {
+      height: 26px;
+      font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+      padding: 0 6px;
+    }
+    tr.selected { background: #0d2a32; outline: 1px solid var(--accent); }
+    tr.range-group-0 { background: rgba(77, 208, 225, 0.12); }
+    tr.range-group-1 { background: rgba(139, 211, 139, 0.12); }
+    tr.range-group-2 { background: rgba(247, 196, 107, 0.12); }
+    tr.range-group-3 { background: rgba(255, 143, 143, 0.12); }
+    tr.range-group-4 { background: rgba(180, 150, 255, 0.12); }
+    tr.range-group-5 { background: rgba(120, 180, 255, 0.12); }
+    .range-bg-0 { background: rgba(77, 208, 225, 0.12); }
+    .range-bg-1 { background: rgba(139, 211, 139, 0.12); }
+    .range-bg-2 { background: rgba(247, 196, 107, 0.12); }
+    .range-bg-3 { background: rgba(255, 143, 143, 0.12); }
+    .range-bg-4 { background: rgba(180, 150, 255, 0.12); }
+    .range-bg-5 { background: rgba(120, 180, 255, 0.12); }
+    .small-id { width: 52px; }
+    .iter-col { width: 92px; }
+    .action-col { width: 86px; }
+    .details-panel, .video-panel {
+      margin-top: 14px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .scale-list {
+      flex: 1;
+      min-height: 280px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      background: var(--bg);
+    }
+    .scale-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 130px;
+      gap: 10px;
+      padding: 5px 0;
+      border-bottom: 1px solid #1a2a38;
+      font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      min-width: 0;
+    }
+    .scale-row:last-child { border-bottom: 0; }
+    .scale-row div {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .video-gallery {
+      flex: 1;
+      min-height: 340px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+    }
+    .video-card {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #1a2a38;
+      padding-bottom: 12px;
+    }
+    .video-card:last-child { border-bottom: 0; margin-bottom: 0; }
+    .video-card video {
+      width: 100%;
+      flex: 1;
+      min-height: 260px;
+      object-fit: contain;
+      background: #000;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+    }
+    .video-title {
+      color: var(--text);
+      font-size: 13px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    canvas {
+      width: 100%;
+      height: 420px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      flex: 0 0 420px;
+    }
+    @media (max-width: 1100px) {
+      .top-grid, .load-grid, .main-grid, .create-grid, .results-grid, .message-row, .summary-grid, .detail-grid {
+        grid-template-columns: 1fr;
+      }
+      .range-row {
+        grid-template-columns: 1fr 1fr;
+      }
+      .views-summary {
+        grid-template-columns: 1fr;
+      }
+      .status { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title-row">
+        <h1>Plan Tune</h1>
+        <button id="configViewBtn" class="ghost active">Config</button>
+        <button id="processViewBtn" class="ghost">Process</button>
+      </div>
+      <div class="muted">Reward scale experiment sequence builder</div>
+    </div>
+    <div id="runStatus" class="status">idle</div>
+  </div>
+
+  <main id="configView" class="view active">
+    <section class="panel">
+      <div class="top-grid">
+        <div><label>Task</label><select id="taskSelect"></select></div>
+        <div><label>Experiment Group</label><input id="groupInput" value="Pikachu_V025_PlanTune" /></div>
+        <div><label>Output Dir</label><input id="outputDirInput" placeholder="auto-generated on sequence creation" /></div>
+        <div><label>Num Envs</label><input id="numEnvsInput" value="4096" /></div>
+        <div><label>Headless</label><label><input id="headlessInput" type="checkbox" checked /> enabled</label></div>
+        <div><label>TensorBoard Port</label><input id="tensorboardPortInput" value="1230" /></div>
+      </div>
+      <div class="load-grid">
+        <button id="loadScalesBtn">Load Reward Scales</button>
+        <div><label>Load Existing JSON</label><input id="sequencePathInput" /></div>
+        <button id="loadJsonBtn" class="warn">Load JSON</button>
+      </div>
+      <div id="loadMessage" class="message" style="margin-top:10px;"></div>
+    </section>
+
+    <section class="panel" style="margin-top:14px;">
+      <h2>Create Experiment</h2>
+      <div class="create-grid">
+        <div><label>Experiment Name</label><input id="experimentNameInput" value="baseline" /></div>
+        <div><label>Iterations</label><input id="iterationsInput" value="500" /></div>
+        <button id="addExperimentBtn" class="good">Add Experiment</button>
+        <div>
+        <button id="generateBtn">Generate Experiment Sequence</button>
+        <button id="startBtn" class="warn">Start Training</button>
+      </div>
+      </div>
+      <div class="message-row">
+        <div id="addMessage" class="message"></div>
+        <div id="sequenceMessage" class="message"></div>
+      </div>
+    </section>
+
+    <div class="main-grid">
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Reward Scale Editor</h2>
+          <button id="rewardRangeBtn" class="ghost small">Reward Range</button>
+        </div>
+        <div id="selectedLabel" class="selected-label">No experiment selected.</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th style="width:46%;">Name</th><th style="width:27%;">Current</th><th style="width:27%;">Planned</th></tr></thead>
+            <tbody id="rewardBody"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Experiment Sequence</h2>
+          <button id="expViewsBtn" class="ghost small">Exp Views</button>
+        </div>
+        <div class="selected-label">Generated sequence preview.</div>
+        <div class="table-wrap sequence-wrap">
+          <table id="sequenceTable" class="sequence-table">
+            <colgroup>
+              <col style="width:52px;">
+              <col id="seqNameCol" style="width:260px;">
+              <col id="seqIterationsCol" style="width:110px;">
+              <col id="seqChangedCol" style="width:390px;">
+              <col style="width:96px;">
+            </colgroup>
+            <thead><tr><th class="small-id">ID</th><th class="resizable" data-col-id="seqNameCol">Name<span class="resize-handle"></span></th><th class="resizable" data-col-id="seqIterationsCol">Iterations<span class="resize-handle"></span></th><th class="resizable" data-col-id="seqChangedCol">Changed Scales<span class="resize-handle"></span></th><th class="action-col">Action</th></tr></thead>
+            <tbody id="sequenceBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <main id="processView" class="view">
+    <div class="summary-grid">
+      <div class="stat-card"><div class="stat-label">Experiments</div><div id="statExperiments" class="stat-value">0 / 0</div><div id="statExperimentsSub" class="stat-sub">Waiting for sequence.</div></div>
+      <div class="stat-card"><div class="stat-label">Current</div><div id="statCurrent" class="stat-value">--</div><div id="statCurrentSub" class="stat-sub">No experiment running.</div></div>
+      <div class="stat-card"><div class="stat-label">Best Score</div><div id="statBest" class="stat-value">--</div><div id="statBestSub" class="stat-sub">No successful experiment yet.</div></div>
+      <div class="stat-card"><div class="stat-label">Videos</div><div id="statVideos" class="stat-value">0 ready</div><div id="statVideosSub" class="stat-sub">0 pending, 0 failed.</div></div>
+    </div>
+
+    <section class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;">
+        <h2 style="margin:0;">Current Experiment</h2>
+        <button id="tensorboardBtn" class="ghost">TensorBoard</button>
+      </div>
+      <div class="detail-grid">
+        <div id="detailStatus" class="detail-item">Status idle</div>
+        <div id="detailTask" class="detail-item">Task --</div>
+        <div id="detailOutput" class="detail-item">Output --</div>
+        <div id="detailReport" class="detail-item">Report --</div>
+        <div id="detailCurrent" class="detail-item">Current --</div>
+        <div id="detailReward" class="detail-item">Latest reward --</div>
+      </div>
+      <div class="progress-track"><div id="overallProgressFill" class="progress-fill"></div></div>
+      <div id="overallProgressText" class="message" style="margin-top:8px;">0%</div>
+    </section>
+
+    <div class="results-grid">
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Training Progress</h2>
+          <button id="topRewardBtn" class="ghost small">Top Reward</button>
+        </div>
+        <div class="table-wrap progress-table-wrap">
+          <table>
+            <thead><tr><th class="small-id">ID</th><th>Name</th><th>Status</th><th>Score</th><th>Best Reward</th><th>Video</th></tr></thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+        <div class="details-panel">
+          <h2>Trial Details</h2>
+          <div id="trialDetailsTitle" class="selected-label">Select a trial to inspect reward scales.</div>
+          <div id="trialScaleList" class="scale-list"></div>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Reward Curves</h2>
+        <canvas id="rewardCanvas" width="900" height="420"></canvas>
+        <div class="video-panel">
+          <h2>Videos</h2>
+          <div id="videoGallery" class="video-gallery">
+            <div class="message">Select a completed trial to inspect videos.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="rangeModalBackdrop" class="modal-backdrop">
+    <div class="range-modal">
+      <div class="range-modal-header">
+        <div>
+          <h2 style="margin:0;">Reward Range</h2>
+          <div class="muted" style="font-size:13px;margin-top:4px;">Nested-loop experiment generator</div>
+        </div>
+        <button id="rangeCloseBtn" class="ghost small">Close</button>
+      </div>
+      <div class="range-modal-body">
+        <div class="range-help">
+          Choose one or more reward scales, then set range(max, min, step). Extra levels are generated as nested loops under the first level.
+        </div>
+        <datalist id="rewardScaleOptions"></datalist>
+        <div id="rangeRows"></div>
+      </div>
+      <div class="range-modal-footer">
+        <div id="rangeMessage" class="message"></div>
+        <button id="rangeGenerateBtn" class="good">Generate Range Experiments</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewsModalBackdrop" class="modal-backdrop">
+    <div class="range-modal views-modal">
+      <div class="range-modal-header">
+        <div>
+          <h2 style="margin:0;">Experiment Views</h2>
+          <div class="muted" style="font-size:13px;margin-top:4px;">Range group structure and generated combinations</div>
+        </div>
+        <button id="viewsCloseBtn" class="ghost small">Close</button>
+      </div>
+      <div class="range-modal-body">
+        <div id="viewsSummary" class="views-summary"></div>
+        <div id="viewsTree" class="views-tree"></div>
+      </div>
+      <div class="views-footer">
+        <div id="viewsDeleteMessage" class="message"></div>
+        <button id="viewsDeleteBtn" class="danger">Delete Selected</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const state = {
+  tasks: [],
+  baseScales: {},
+  rewardRows: [],
+  experiments: [],
+  selectedExperiment: null,
+  selectedTrialId: null,
+  latestSnapshot: null,
+  lastVideoSignature: "",
+  config: {runs_dir: "", initial_output_dir: ""},
+  rangeLevels: [{enabled: true, expanded: false, param: "", min: "", max: "", step: ""}],
+  sequenceColWidths: {seqNameCol: 260, seqIterationsCol: 110, seqChangedCol: 390},
+  viewsDeleteSelections: {},
+  sortResultsByScore: false,
+};
+
+function byId(id) { return document.getElementById(id); }
+function setText(id, text) { byId(id).textContent = text || ""; }
+function apiGet(path) {
+  return fetch(path).then(r => r.json()).then(j => {
+    if (!j.ok) throw new Error(j.error || "request failed");
+    return j;
+  });
+}
+function apiPost(path, payload) {
+  return fetch(path, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)})
+    .then(r => r.json()).then(j => {
+      if (!j.ok) throw new Error(j.error || "request failed");
+      return j;
+    });
+}
+function parseNumber(value) {
+  const text = String(value ?? "").trim();
+  if (!text) throw new Error("empty number");
+  const n = Number(text);
+  if (!Number.isFinite(n)) throw new Error("invalid number: " + text);
+  return n;
+}
+function formatNumber(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value ?? "");
+  return n.toPrecision(12).replace(/\.?0+($|e)/, "$1");
+}
+function formatToken(value) {
+  return formatNumber(value).replace(/[^A-Za-z0-9_.-]+/g, "_").replace(/^-/, "neg_");
+}
+function changedSummary(scales) {
+  const keys = Object.keys(scales || {}).sort();
+  if (!keys.length) return "baseline";
+  return keys.map(k => `${k}=${scales[k]}`).join(", ");
+}
+function rangeGroupClass(group) {
+  return `range-group-${Number(group || 0) % 6}`;
+}
+function rangeBgClass(group) {
+  return `range-bg-${Number(group || 0) % 6}`;
+}
+function deleteSelectionKey(param, value) {
+  return `${param}::${formatNumber(value)}`;
+}
+function rewardScaleNames() {
+  return Object.keys(state.baseScales).sort();
+}
+function rangeValues(minValue, maxValue, stepValue) {
+  const min = parseNumber(minValue);
+  const max = parseNumber(maxValue);
+  const step = Math.abs(parseNumber(stepValue));
+  if (step <= 0) throw new Error("step must be > 0");
+  const values = [];
+  const epsilon = step * 1e-9 + 1e-12;
+  if (min <= max) {
+    for (let value = min; value <= max + epsilon; value += step) values.push(Number(value.toPrecision(12)));
+  } else {
+    for (let value = min; value >= max - epsilon; value -= step) values.push(Number(value.toPrecision(12)));
+  }
+  return values;
+}
+function updateRewardScaleOptions() {
+  const list = byId("rewardScaleOptions");
+  if (!list) return;
+  list.innerHTML = "";
+  rewardScaleNames().forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    list.appendChild(opt);
+  });
+}
+function rangeLevelLabel(idx) {
+  return idx === 0 ? "Level 1" : `Nested ${idx + 1}`;
+}
+function makeRangeInput(level, idx, field, label, placeholder) {
+  const wrap = document.createElement("div");
+  const lab = document.createElement("label");
+  lab.textContent = label;
+  const input = document.createElement("input");
+  input.value = level[field] ?? "";
+  input.placeholder = placeholder || "";
+  input.addEventListener("input", () => {
+    state.rangeLevels[idx][field] = input.value;
+    setText("rangeMessage", "");
+  });
+  wrap.append(lab, input);
+  return wrap;
+}
+function renderRangeRows() {
+  updateRewardScaleOptions();
+  const rows = byId("rangeRows");
+  rows.innerHTML = "";
+  const visibleLevels = state.rangeLevels.filter((level, idx) => idx === 0 || level.enabled);
+  if (!visibleLevels.length) {
+    state.rangeLevels = [{enabled: true, expanded: false, param: "", min: "", max: "", step: ""}];
+  }
+  state.rangeLevels.forEach((level, idx) => {
+    if (idx > 0 && !level.enabled) return;
+    const row = document.createElement("div");
+    row.className = idx > 0 ? "range-row nested" : "range-row";
+
+    const paramWrap = document.createElement("div");
+    const paramLabel = document.createElement("label");
+    paramLabel.textContent = `${rangeLevelLabel(idx)} Reward Scale`;
+    const paramInput = document.createElement("input");
+    paramInput.setAttribute("list", "rewardScaleOptions");
+    paramInput.placeholder = "type to search scale";
+    paramInput.value = level.param || "";
+    paramInput.addEventListener("input", () => {
+      state.rangeLevels[idx].param = paramInput.value.trim();
+      setText("rangeMessage", "");
+    });
+    paramWrap.append(paramLabel, paramInput);
+
+    const maxWrap = makeRangeInput(level, idx, "max", "Max", "e.g. 1.5");
+    const minWrap = makeRangeInput(level, idx, "min", "Min", "e.g. -1e-7");
+    const stepWrap = makeRangeInput(level, idx, "step", "Step", "e.g. 0.1");
+    const toggleWrap = document.createElement("div");
+    const toggleLabel = document.createElement("label");
+    toggleLabel.textContent = idx === state.rangeLevels.length - 1 ? "Next" : "Remove";
+    const toggle = document.createElement("button");
+    toggle.className = "ghost small";
+    toggle.textContent = idx === state.rangeLevels.length - 1 ? "+" : "-";
+    toggle.title = idx === state.rangeLevels.length - 1 ? "Add nested level" : "Remove this and deeper levels";
+    toggle.addEventListener("click", () => toggleRangeLevel(idx));
+    toggleWrap.append(toggleLabel, toggle);
+
+    row.append(paramWrap, maxWrap, minWrap, stepWrap, toggleWrap);
+    rows.appendChild(row);
+  });
+}
+function toggleRangeLevel(idx) {
+  if (idx === state.rangeLevels.length - 1) {
+    state.rangeLevels.push({enabled: true, expanded: false, param: "", min: "", max: "", step: ""});
+  } else {
+    state.rangeLevels = state.rangeLevels.slice(0, idx + 1);
+  }
+  renderRangeRows();
+}
+function openRangeModal() {
+  if (!Object.keys(state.baseScales).length) {
+    setText("addMessage", "Load reward scales first.");
+    return;
+  }
+  if (!state.rangeLevels.length) {
+    state.rangeLevels = [{enabled: true, expanded: false, param: "", min: "", max: "", step: ""}];
+  }
+  renderRangeRows();
+  setText("rangeMessage", "");
+  byId("rangeModalBackdrop").classList.add("active");
+}
+function closeRangeModal() {
+  byId("rangeModalBackdrop").classList.remove("active");
+}
+function collectRangeLevels() {
+  const names = new Set(rewardScaleNames());
+  const levels = state.rangeLevels
+    .filter((level, idx) => idx === 0 || level.enabled)
+    .map((level, idx) => ({
+      idx,
+      param: String(level.param || "").trim(),
+      values: rangeValues(level.max, level.min, level.step),
+    }));
+  if (!levels.length) throw new Error("Add at least one range level.");
+  levels.forEach(level => {
+    if (!level.param) throw new Error(`${rangeLevelLabel(level.idx)} reward scale is empty.`);
+    if (!names.has(level.param)) throw new Error(`Unknown reward scale: ${level.param}`);
+    if (!level.values.length) throw new Error(`${level.param} generated no values.`);
+  });
+  const seen = new Set();
+  levels.forEach(level => {
+    if (seen.has(level.param)) throw new Error(`Duplicate reward scale: ${level.param}`);
+    seen.add(level.param);
+  });
+  return levels;
+}
+function rangePlanSummary(levels) {
+  const counts = levels.map(level => level.values.length);
+  const total = counts.reduce((acc, count) => acc * count, 1);
+  const detail = levels.map(level => `${level.param}: ${level.values.length}`).join(", ");
+  return {counts, total, detail};
+}
+function appendRangeCombination(levels, levelIdx, overrides, labels, firstGroupIndex, created) {
+  if (levelIdx >= levels.length) {
+    const baseName = byId("experimentNameInput").value || "range";
+    const name = `${baseName}_${labels.join("_")}`;
+    const first = levels[0];
+    created.push({
+      id: state.experiments.length + created.length,
+      name,
+      iterations: parseInt(byId("iterationsInput").value || "500", 10),
+      reward_scales: {...overrides},
+      range_group: firstGroupIndex,
+      range_meta: {
+        root_param: first ? first.param : "",
+        root_value: first ? overrides[first.param] : null,
+        levels: levels.map(level => ({param: level.param, value: overrides[level.param]})),
+      },
+    });
+    return;
+  }
+  const level = levels[levelIdx];
+  level.values.forEach((value, valueIdx) => {
+    overrides[level.param] = value;
+    labels.push(`${level.param}_${formatToken(value)}`);
+    appendRangeCombination(levels, levelIdx + 1, overrides, labels, levelIdx === 0 ? valueIdx : firstGroupIndex, created);
+    labels.pop();
+    delete overrides[level.param];
+  });
+}
+function generateRangeExperiments() {
+  if (!Object.keys(state.baseScales).length) {
+    setText("rangeMessage", "Load reward scales first.");
+    return;
+  }
+  const levels = collectRangeLevels();
+  const plan = rangePlanSummary(levels);
+  const message = `Reward Range will append ${plan.total} experiment(s).\n${plan.detail}\n\nContinue creating this experiment sequence?`;
+  if (!window.confirm(message)) {
+    setText("rangeMessage", "Range generation cancelled.");
+    return;
+  }
+  const created = [];
+  appendRangeCombination(levels, 0, {}, [], 0, created);
+  if (!created.length) {
+    setText("rangeMessage", "No experiments generated.");
+    return;
+  }
+  state.experiments.push(...created);
+  state.experiments = state.experiments.map((exp, idx) => ({...exp, id: idx}));
+  renderSequenceTable();
+  setText("rangeMessage", `Generated ${created.length} range experiment(s).`);
+  setText("addMessage", `Added ${created.length} nested range experiment(s).`);
+  closeRangeModal();
+}
+function renderTasks(defaultTask) {
+  const select = byId("taskSelect");
+  select.innerHTML = "";
+  state.tasks.forEach(task => {
+    const opt = document.createElement("option");
+    opt.value = task;
+    opt.textContent = task;
+    select.appendChild(opt);
+  });
+  select.value = state.tasks.includes(defaultTask) ? defaultTask : (state.tasks[0] || defaultTask);
+}
+function resetRewardRows(overrides = {}) {
+  state.rewardRows = Object.keys(state.baseScales).sort().map(name => ({
+    name,
+    current: state.baseScales[name],
+    planned: Object.prototype.hasOwnProperty.call(overrides, name) ? overrides[name] : state.baseScales[name],
+  }));
+}
+function renderRewardTable() {
+  const body = byId("rewardBody");
+  body.innerHTML = "";
+  state.rewardRows.forEach(row => {
+    const tr = document.createElement("tr");
+    const name = document.createElement("td");
+    name.className = "mono";
+    name.title = row.name;
+    name.textContent = row.name;
+    const current = document.createElement("td");
+    current.className = "mono";
+    current.title = formatNumber(row.current);
+    current.textContent = formatNumber(row.current);
+    const planned = document.createElement("td");
+    const input = document.createElement("input");
+    input.value = formatNumber(row.planned);
+    input.title = "Supports decimals and scientific notation, e.g. -1e-7";
+    input.addEventListener("change", () => {
+      try {
+        row.planned = parseNumber(input.value);
+        input.value = formatNumber(row.planned);
+        setText("addMessage", "");
+      } catch (err) {
+        row.planned = row.current;
+        input.value = formatNumber(row.current);
+        setText("addMessage", `${row.name}: ${err.message}; reset to current value.`);
+      }
+    });
+    planned.appendChild(input);
+    tr.append(name, current, planned);
+    body.appendChild(tr);
+  });
+}
+function renderSequenceTable() {
+  const body = byId("sequenceBody");
+  body.innerHTML = "";
+  state.experiments.forEach((exp, idx) => {
+    const tr = document.createElement("tr");
+    if (exp.range_group != null) tr.classList.add(rangeGroupClass(exp.range_group));
+    if (state.selectedExperiment === idx) tr.classList.add("selected");
+    tr.addEventListener("click", () => selectExperiment(idx));
+    [
+      [exp.id, "mono"],
+      [exp.name, ""],
+      [exp.iterations, "mono"],
+      [changedSummary(exp.reward_scales), ""],
+    ].forEach(([text, cls]) => {
+      const td = document.createElement("td");
+      td.className = cls;
+      td.title = String(text);
+      td.textContent = String(text);
+      tr.appendChild(td);
+    });
+    const action = document.createElement("td");
+    const del = document.createElement("button");
+    del.className = "danger";
+    del.textContent = "Delete";
+    del.addEventListener("click", event => {
+      event.stopPropagation();
+      deleteExperiment(idx);
+    });
+    action.appendChild(del);
+    tr.appendChild(action);
+    body.appendChild(tr);
+  });
+}
+function deleteExperiment(idx) {
+  state.experiments.splice(idx, 1);
+  state.experiments = state.experiments.map((exp, nextIdx) => ({...exp, id: nextIdx}));
+  state.selectedExperiment = null;
+  setText("selectedLabel", "No experiment selected.");
+  resetRewardRows();
+  renderRewardTable();
+  renderSequenceTable();
+  setText("addMessage", `Deleted experiment #${idx}.`);
+}
+function selectExperiment(idx) {
+  const exp = state.experiments[idx];
+  if (!exp) return;
+  state.selectedExperiment = idx;
+  resetRewardRows(exp.reward_scales || {});
+  setText("selectedLabel", `Selected #${exp.id}: ${exp.name}`);
+  renderRewardTable();
+  renderSequenceTable();
+}
+function rangeViewGroups() {
+  const batches = new Map();
+  const manual = [];
+  const ensureBatch = (key, levels, rangeGroup) => {
+    if (!batches.has(key)) {
+      batches.set(key, {
+        key,
+        levels: levels.map(param => ({param, values: new Set()})),
+        range_group: rangeGroup,
+        experiments: [],
+      });
+    }
+    return batches.get(key);
+  };
+  state.experiments.forEach(exp => {
+    if (exp.range_meta && Array.isArray(exp.range_meta.levels) && exp.range_meta.levels.length) {
+      const levelNames = exp.range_meta.levels.map(level => level.param);
+      const key = `meta:${levelNames.join("|")}`;
+      const batch = ensureBatch(key, levelNames, exp.range_group);
+      exp.range_meta.levels.forEach((level, idx) => {
+        if (!batch.levels[idx]) batch.levels[idx] = {param: level.param, values: new Set()};
+        batch.levels[idx].values.add(Number(level.value));
+      });
+      batch.experiments.push(exp);
+      return;
+    }
+
+    const rewardScales = exp.reward_scales || {};
+    const keys = Object.keys(rewardScales);
+    if (!keys.length) {
+      manual.push(exp);
+      return;
+    }
+
+    const batch = ensureBatch(`legacy:${keys.join("|")}`, keys, exp.range_group);
+    keys.forEach((param, idx) => {
+      if (!batch.levels[idx]) batch.levels[idx] = {param, values: new Set()};
+      batch.levels[idx].values.add(Number(rewardScales[param]));
+    });
+    batch.experiments.push(exp);
+  });
+  const rangeBatches = Array.from(batches.values()).map(batch => ({
+    ...batch,
+    levels: batch.levels.map(level => ({
+      param: level.param,
+      values: Array.from(level.values).sort((a, b) => a - b),
+    })),
+  }));
+  return {rangeBatches, manual};
+}
+function makeViewsRangeNode(levels, idx, totalCases, groupClass, isRoot = false) {
+  const level = levels[idx];
+  const node = document.createElement("div");
+  node.className = `views-node ${isRoot ? groupClass : ""}`;
+  const details = document.createElement("details");
+  details.open = idx < 2;
+  const summary = document.createElement("summary");
+  summary.innerHTML = `<span class="views-summary-line"><span>${level.param}</span><span>${level.values.length} case(s)</span></span>`;
+  details.appendChild(summary);
+  const values = document.createElement("div");
+  values.className = "views-values";
+  level.values.forEach(value => {
+    const label = document.createElement("label");
+    label.className = "views-value-check";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.param = level.param;
+    input.dataset.value = formatNumber(value);
+    input.checked = !!state.viewsDeleteSelections[deleteSelectionKey(level.param, value)];
+    input.addEventListener("change", () => {
+      const key = deleteSelectionKey(level.param, value);
+      if (input.checked) state.viewsDeleteSelections[key] = {param: level.param, value: Number(value)};
+      else delete state.viewsDeleteSelections[key];
+      updateViewsDeleteMessage();
+    });
+    const text = document.createElement("span");
+    text.textContent = formatNumber(value);
+    label.append(input, text);
+    values.appendChild(label);
+  });
+  details.appendChild(values);
+  const note = document.createElement("div");
+  note.className = "views-range-note";
+  note.textContent = idx === 0 ? `Total combinations in this range structure: ${totalCases}` : `Nested level ${idx + 1}`;
+  details.appendChild(note);
+  if (idx + 1 < levels.length) {
+    const children = document.createElement("div");
+    children.className = "views-children";
+    children.appendChild(makeViewsRangeNode(levels, idx + 1, totalCases, "", false));
+    details.appendChild(children);
+  }
+  node.appendChild(details);
+  return node;
+}
+function renderExpViews() {
+  const summary = byId("viewsSummary");
+  const tree = byId("viewsTree");
+  summary.innerHTML = "";
+  tree.innerHTML = "";
+  const {rangeBatches, manual} = rangeViewGroups();
+  const total = state.experiments.length;
+  const rangeTotal = rangeBatches.reduce((acc, batch) => acc + batch.experiments.length, 0);
+  [
+    ["Total", `${total}`, "all configured experiments"],
+    ["Range Generated", `${rangeTotal}`, `${rangeBatches.length} range structure(s)`],
+    ["Manual", `${manual.length}`, "experiments without range group"],
+  ].forEach(([label, value, sub]) => {
+    const card = document.createElement("div");
+    card.className = "views-card";
+    card.innerHTML = `<div class="stat-label">${label}</div><div class="stat-value">${value}</div><div class="stat-sub">${sub}</div>`;
+    summary.appendChild(card);
+  });
+  if (!total) {
+    tree.innerHTML = '<div class="message">No experiments configured yet.</div>';
+    return;
+  }
+  rangeBatches.forEach((batch, idx) => {
+    const totalCases = batch.levels.reduce((acc, level) => acc * level.values.length, 1);
+    if (!batch.levels.length) return;
+    const root = makeViewsRangeNode(batch.levels, 0, totalCases, rangeBgClass(idx), true);
+    tree.appendChild(root);
+  });
+  if (manual.length) {
+    const box = document.createElement("div");
+    box.className = "views-node";
+    const row = document.createElement("div");
+    row.className = "views-range-row";
+    row.innerHTML = `<div>Manual experiments</div><div class="views-count">${manual.length} case(s)</div>`;
+    box.appendChild(row);
+    tree.appendChild(box);
+  }
+  updateViewsDeleteMessage();
+}
+function experimentScaleValue(exp, param) {
+  if (exp.range_meta && Array.isArray(exp.range_meta.levels)) {
+    const found = exp.range_meta.levels.find(level => level.param === param);
+    if (found) return Number(found.value);
+  }
+  if (exp.reward_scales && Object.prototype.hasOwnProperty.call(exp.reward_scales, param)) {
+    return Number(exp.reward_scales[param]);
+  }
+  return null;
+}
+function selectedDeleteRules() {
+  return Object.values(state.viewsDeleteSelections || {});
+}
+function experimentMatchesDeleteRules(exp, rules) {
+  return rules.some(rule => {
+    const value = experimentScaleValue(exp, rule.param);
+    return value != null && Math.abs(value - Number(rule.value)) <= 1e-12;
+  });
+}
+function updateViewsDeleteMessage() {
+  const rules = selectedDeleteRules();
+  if (!rules.length) {
+    setText("viewsDeleteMessage", "Select range values to delete matching experiments.");
+    return;
+  }
+  const matches = state.experiments.filter(exp => experimentMatchesDeleteRules(exp, rules)).length;
+  setText("viewsDeleteMessage", `${rules.length} value(s) selected, ${matches} experiment(s) will be deleted.`);
+}
+function deleteSelectedViewExperiments() {
+  const rules = selectedDeleteRules();
+  if (!rules.length) {
+    setText("viewsDeleteMessage", "No range values selected.");
+    return;
+  }
+  const matches = state.experiments.filter(exp => experimentMatchesDeleteRules(exp, rules));
+  if (!matches.length) {
+    setText("viewsDeleteMessage", "No experiments match selected values.");
+    return;
+  }
+  if (!window.confirm(`Delete ${matches.length} matching experiment(s) from the current sequence?`)) return;
+  const matchedIds = new Set(matches.map(exp => exp.id));
+  state.experiments = state.experiments
+    .filter(exp => !matchedIds.has(exp.id))
+    .map((exp, idx) => ({...exp, id: idx}));
+  state.selectedExperiment = null;
+  state.viewsDeleteSelections = {};
+  resetRewardRows();
+  renderRewardTable();
+  renderSequenceTable();
+  renderExpViews();
+  setText("selectedLabel", "No experiment selected.");
+  setText("addMessage", `Deleted ${matches.length} experiment(s) from Exp Views.`);
+}
+function openExpViews() {
+  renderExpViews();
+  byId("viewsModalBackdrop").classList.add("active");
+}
+function closeExpViews() {
+  byId("viewsModalBackdrop").classList.remove("active");
+}
+function applySequenceColumnWidths() {
+  Object.entries(state.sequenceColWidths).forEach(([id, width]) => {
+    const col = byId(id);
+    if (col) col.style.width = `${width}px`;
+  });
+}
+function setupSequenceResizers() {
+  applySequenceColumnWidths();
+  document.querySelectorAll("#sequenceTable th.resizable .resize-handle").forEach(handle => {
+    handle.addEventListener("mousedown", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const th = handle.closest("th");
+      const colId = th.dataset.colId;
+      const startX = event.clientX;
+      const startWidth = state.sequenceColWidths[colId] || th.getBoundingClientRect().width;
+      const onMove = moveEvent => {
+        const next = Math.max(90, Math.min(900, startWidth + moveEvent.clientX - startX));
+        state.sequenceColWidths[colId] = next;
+        applySequenceColumnWidths();
+      };
+      const onUp = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+  });
+}
+function videoPathToUrl(path) {
+  if (!path) return null;
+  const outputDir = byId("outputDirInput").value;
+  const marker = "/videos/";
+  let rel = String(path);
+  const markerIdx = rel.indexOf(marker);
+  if (markerIdx >= 0) rel = rel.slice(markerIdx + marker.length);
+  else rel = rel.split("/").pop();
+  return `/videos/${encodeURIComponent(rel).replace(/%2F/g, "/")}?output_dir=${encodeURIComponent(outputDir)}`;
+}
+function selectTrial(exp) {
+  if (!exp) return;
+  state.selectedTrialId = exp.experiment_id;
+  state.lastVideoSignature = "";
+  renderTrialDetails(exp);
+  renderVideos(exp, true);
+  renderResults(state.latestSnapshot || {experiments: []});
+}
+function videoStatusForExperiment(exp, videoById, snap) {
+  const status = videoById[exp.experiment_id];
+  if (status) return status;
+  if (exp.video_paths && exp.video_paths.length) return "READY";
+  if (!exp.success) return "--";
+  const session = snap.session || {};
+  if (session.status === "recording_videos") return "WAITING";
+  if (session.status === "completed") return "SKIPPED";
+  return "TOP20 PENDING";
+}
+function renderResults(snap) {
+  state.latestSnapshot = snap;
+  const body = byId("resultsBody");
+  body.innerHTML = "";
+  const videoById = {};
+  (snap.video_jobs || []).forEach(job => { videoById[job.experiment_id] = String(job.status || "--").toUpperCase(); });
+  const rows = (snap.experiments || []).slice();
+  if (state.sortResultsByScore) {
+    rows.sort((a, b) => Number(b.score ?? -Infinity) - Number(a.score ?? -Infinity));
+  }
+  rows.forEach(exp => {
+    const tr = document.createElement("tr");
+    if (state.selectedTrialId === exp.experiment_id) tr.classList.add("selected");
+    tr.addEventListener("click", () => selectTrial(exp));
+    const cells = [
+      exp.experiment_id,
+      exp.experiment_name,
+      exp.success ? "SUCCESS" : "FAILED",
+      exp.score == null ? "--" : Number(exp.score).toFixed(3),
+      exp.trial_best_reward == null ? "--" : exp.trial_best_reward,
+      videoStatusForExperiment(exp, videoById, snap),
+    ];
+    cells.forEach(text => {
+      const td = document.createElement("td");
+      td.title = String(text);
+      td.textContent = String(text);
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+  const liveId = snap.live_curve && snap.live_curve.experiment_id;
+  const completed = new Set((snap.experiments || []).map(e => e.experiment_id));
+  if (liveId != null && !completed.has(liveId) && !state.sortResultsByScore) {
+    const tr = document.createElement("tr");
+    [liveId, snap.session.current_experiment_name || "", "RUNNING", snap.live.reward ?? "--", "--", "--"].forEach(text => {
+      const td = document.createElement("td");
+      td.title = String(text);
+      td.textContent = String(text);
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  }
+  if (state.selectedTrialId != null) {
+    const selected = (snap.experiments || []).find(exp => exp.experiment_id === state.selectedTrialId);
+    if (selected) {
+      renderTrialDetails(selected);
+      renderVideos(selected, false);
+    }
+  }
+}
+function renderTrialDetails(exp) {
+  if (!exp) {
+    setText("trialDetailsTitle", "Select a trial to inspect reward scales.");
+    byId("trialScaleList").innerHTML = "";
+    return;
+  }
+  setText("trialDetailsTitle", `#${exp.experiment_id} ${exp.experiment_name} · score ${exp.score == null ? "--" : Number(exp.score).toFixed(3)}`);
+  const scales = exp.changed_reward_scales && Object.keys(exp.changed_reward_scales).length ? exp.changed_reward_scales : (exp.reward_scales || {});
+  const list = byId("trialScaleList");
+  list.innerHTML = "";
+  const keys = Object.keys(scales).sort();
+  if (!keys.length) {
+    const empty = document.createElement("div");
+    empty.className = "message";
+    empty.textContent = "No reward scales recorded.";
+    list.appendChild(empty);
+    return;
+  }
+  keys.forEach(key => {
+    const row = document.createElement("div");
+    row.className = "scale-row";
+    const name = document.createElement("div");
+    name.title = key;
+    name.textContent = key;
+    const value = document.createElement("div");
+    value.title = String(scales[key]);
+    value.textContent = formatNumber(scales[key]);
+    row.append(name, value);
+    list.appendChild(row);
+  });
+}
+function videoEntries(exp) {
+  const paths = exp.video_paths || [];
+  const jobs = (state.latestSnapshot && state.latestSnapshot.video_jobs) || [];
+  const relatedJobs = jobs.filter(job => Number(job.experiment_id) === Number(exp.experiment_id));
+  return paths.length ? paths.map(path => ({path, status: "ready"})) : relatedJobs.map(job => ({path: job.output_path, status: job.status || "pending", error: job.error}));
+}
+function videoSignature(exp) {
+  return JSON.stringify({
+    trial: exp ? exp.experiment_id : null,
+    output: byId("outputDirInput").value,
+    entries: exp ? videoEntries(exp).map(entry => [entry.path, entry.status, entry.error || ""]) : [],
+  });
+}
+function renderVideos(exp, force) {
+  const gallery = byId("videoGallery");
+  if (!exp) {
+    if (state.lastVideoSignature !== "empty" || force) {
+      state.lastVideoSignature = "empty";
+      gallery.innerHTML = '<div class="message">Select a completed trial to inspect videos.</div>';
+    }
+    return;
+  }
+  const signature = videoSignature(exp);
+  if (!force && signature === state.lastVideoSignature) return;
+  state.lastVideoSignature = signature;
+  gallery.innerHTML = "";
+  const entries = videoEntries(exp);
+  if (!entries.length) {
+    gallery.innerHTML = '<div class="message">No videos recorded for this trial yet.</div>';
+    return;
+  }
+  entries.forEach((entry, idx) => {
+    const card = document.createElement("div");
+    card.className = "video-card";
+    const title = document.createElement("div");
+    title.className = "video-title";
+    title.textContent = `Trial #${exp.experiment_id} video ${idx + 1} · ${String(entry.status).toUpperCase()}`;
+    card.appendChild(title);
+    const url = videoPathToUrl(entry.path);
+    if (url && String(entry.status).toLowerCase() === "ready") {
+      const video = document.createElement("video");
+      video.controls = true;
+      video.src = url;
+      card.appendChild(video);
+    } else {
+      const msg = document.createElement("div");
+      msg.className = "message";
+      msg.textContent = entry.error || `Video ${entry.status || "pending"}.`;
+      card.appendChild(msg);
+    }
+    gallery.appendChild(card);
+  });
+}
+function updateProcessSummary(snap) {
+  const session = snap.session || {};
+  const experiments = snap.experiments || [];
+  const total = Number(session.total_experiments || state.experiments.length || experiments.length || 0);
+  const completed = Number(session.completed_experiments || experiments.length || 0);
+  const successful = experiments.filter(exp => exp.success);
+  const best = successful.slice().sort((a, b) => Number(b.score ?? -Infinity) - Number(a.score ?? -Infinity))[0];
+  const jobs = snap.video_jobs || [];
+  const ready = jobs.filter(job => String(job.status || "").toLowerCase() === "ready").length;
+  const pending = jobs.filter(job => ["pending", "running"].includes(String(job.status || "").toLowerCase())).length;
+  const failed = jobs.filter(job => String(job.status || "").toLowerCase() === "failed").length;
+  const live = snap.live || {};
+  const currentName = session.current_experiment_name || "--";
+  const pct = total > 0 ? Math.max(0, Math.min(100, (completed / total) * 100)) : 0;
+
+  setText("statExperiments", `${completed} / ${total}`);
+  setText("statExperimentsSub", `${successful.length} successful`);
+  setText("statCurrent", currentName);
+  setText("statCurrentSub", session.current_experiment != null ? `ID ${session.current_experiment}` : "No experiment running.");
+  setText("statBest", best ? Number(best.score).toFixed(3) : "--");
+  setText("statBestSub", best ? `#${best.experiment_id} ${best.experiment_name}` : "No successful experiment yet.");
+  setText("statVideos", `${ready} ready`);
+  setText("statVideosSub", `${pending} pending, ${failed} failed.`);
+  setText("detailStatus", `Status ${session.status || "idle"}`);
+  setText("detailTask", `Task ${session.task || byId("taskSelect").value || "--"}`);
+  setText("detailOutput", `Output ${session.output_dir || byId("outputDirInput").value || "--"}`);
+  setText("detailReport", `Report ${session.report_path || "--"}`);
+  setText("detailCurrent", `Current ${currentName}`);
+  setText("detailReward", `Latest reward ${live.reward == null ? "--" : live.reward}`);
+  byId("overallProgressFill").style.width = `${pct}%`;
+  setText("overallProgressText", `${pct.toFixed(0)}% complete · ${completed}/${total} experiments`);
+}
+function setView(viewName) {
+  const isProcess = viewName === "process";
+  byId("configView").classList.toggle("active", !isProcess);
+  byId("processView").classList.toggle("active", isProcess);
+  byId("configViewBtn").classList.toggle("active", !isProcess);
+  byId("processViewBtn").classList.toggle("active", isProcess);
+  if (isProcess) refreshStatus();
+}
+function collectPayload() {
+  const base = {};
+  Object.entries(state.baseScales).forEach(([k, v]) => base[k] = Number(v));
+  return {
+    task: byId("taskSelect").value,
+    experiment_name: byId("groupInput").value || `${byId("taskSelect").value}_PlanTune`,
+    output_dir: byId("outputDirInput").value,
+    num_envs: parseInt(byId("numEnvsInput").value || "4096", 10),
+    headless: byId("headlessInput").checked,
+    tensorboard_port: parseInt(byId("tensorboardPortInput").value || "1230", 10),
+    base_scales: base,
+    experiments: state.experiments,
+  };
+}
+function drawCurves(snap) {
+  const canvas = byId("rewardCanvas");
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#0b1117";
+  ctx.fillRect(0, 0, w, h);
+  const curves = [];
+  (snap.experiments || []).forEach(exp => {
+    if (exp.reward_curve && exp.reward_curve.length) curves.push({name: `${exp.experiment_id} ${exp.experiment_name}`, data: exp.reward_curve, color: "#8bd38b"});
+  });
+  const live = snap.live_curve || {};
+  const completed = new Set((snap.experiments || []).map(e => e.experiment_id));
+  if (live.reward_curve && live.reward_curve.length && !completed.has(live.experiment_id)) {
+    curves.push({name: `${live.experiment_id} running`, data: live.reward_curve, color: "#4dd0e1"});
+  }
+  if (!curves.length) {
+    ctx.fillStyle = "#9fb2c7";
+    ctx.fillText("No reward curves yet.", 28, 38);
+    return;
+  }
+  const points = curves.flatMap(c => c.data.map(p => [Number(p[0]), Number(p[1])]));
+  let minX = Math.min(...points.map(p => p[0])), maxX = Math.max(...points.map(p => p[0]));
+  let minY = Math.min(...points.map(p => p[1])), maxY = Math.max(...points.map(p => p[1]));
+  if (minX === maxX) maxX = minX + 1;
+  if (minY === maxY) { minY -= 1; maxY += 1; }
+  const pad = {l: 54, r: 20, t: 22, b: 42};
+  const sx = x => pad.l + ((x - minX) / (maxX - minX)) * (w - pad.l - pad.r);
+  const sy = y => h - pad.b - ((y - minY) / (maxY - minY)) * (h - pad.t - pad.b);
+  ctx.strokeStyle = "#2a4056";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t);
+  ctx.lineTo(pad.l, h - pad.b);
+  ctx.lineTo(w - pad.r, h - pad.b);
+  ctx.stroke();
+  ctx.fillStyle = "#9fb2c7";
+  ctx.fillText(minY.toFixed(2), 8, h - pad.b);
+  ctx.fillText(maxY.toFixed(2), 8, pad.t + 4);
+  ctx.fillText(`iter ${minX}`, pad.l, h - 14);
+  ctx.fillText(`iter ${maxX}`, w - 90, h - 14);
+  curves.forEach((curve, idx) => {
+    ctx.strokeStyle = idx === curves.length - 1 ? curve.color : `hsl(${(idx * 61) % 360}, 70%, 65%)`;
+    ctx.lineWidth = idx === curves.length - 1 && curve.name.includes("running") ? 3 : 1.5;
+    ctx.beginPath();
+    curve.data.forEach((p, i) => {
+      const x = sx(Number(p[0])), y = sy(Number(p[1]));
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+}
+
+async function init() {
+  try {
+    const config = await apiGet("/api/config");
+    state.config = config;
+    byId("sequencePathInput").value = config.runs_dir || "";
+    if (config.initial_output_dir) byId("outputDirInput").value = config.initial_output_dir;
+    const tasks = await apiGet("/api/tasks");
+    state.tasks = tasks.tasks || [];
+    renderTasks(tasks.default_task || "Pikachu_V025");
+    byId("groupInput").value = `${byId("taskSelect").value}_PlanTune`;
+  } catch (err) {
+    state.tasks = ["Pikachu_V025"];
+    renderTasks("Pikachu_V025");
+    setText("loadMessage", err.message);
+  }
+}
+async function loadScales() {
+  const task = byId("taskSelect").value;
+  const data = await apiGet(`/api/reward_scales?task=${encodeURIComponent(task)}`);
+  state.baseScales = data.reward_scales || {};
+  state.experiments = [];
+  state.selectedExperiment = null;
+  resetRewardRows();
+  renderRewardTable();
+  renderSequenceTable();
+  byId("groupInput").value = `${task}_PlanTune`;
+  setText("selectedLabel", "No experiment selected.");
+  setText("loadMessage", `Loaded ${Object.keys(state.baseScales).length} reward scales from ${task}.`);
+}
+async function loadJson() {
+  const path = byId("sequencePathInput").value;
+  const data = await apiGet(`/api/load_sequence?path=${encodeURIComponent(path)}`);
+  byId("taskSelect").value = data.task;
+  byId("groupInput").value = data.experiment_name;
+  byId("numEnvsInput").value = data.num_envs;
+  byId("headlessInput").checked = !!data.headless;
+  byId("tensorboardPortInput").value = data.tensorboard_port || byId("tensorboardPortInput").value || "1230";
+  byId("outputDirInput").value = data.output_dir;
+  state.baseScales = data.base_scales || {};
+  state.experiments = data.experiments || [];
+  state.selectedExperiment = null;
+  resetRewardRows();
+  renderRewardTable();
+  renderSequenceTable();
+  setText("selectedLabel", "No experiment selected.");
+  setText("loadMessage", `Loaded sequence JSON: ${data.path} (${state.experiments.length} experiment(s)).`);
+}
+function addExperiment() {
+  if (!Object.keys(state.baseScales).length) {
+    setText("addMessage", "Load reward scales first.");
+    return;
+  }
+  const overrides = {};
+  for (const row of state.rewardRows) {
+    const planned = parseNumber(row.planned);
+    if (Math.abs(planned - Number(row.current)) > 1e-12) overrides[row.name] = planned;
+  }
+  const exp = {
+    id: state.experiments.length,
+    name: byId("experimentNameInput").value || `experiment_${state.experiments.length}`,
+    iterations: parseInt(byId("iterationsInput").value || "500", 10),
+    reward_scales: overrides,
+    range_group: null,
+  };
+  state.experiments.push(exp);
+  renderSequenceTable();
+  setText("addMessage", `Added ${exp.name} with ${Object.keys(overrides).length} changed scale(s).`);
+}
+async function generateSequence() {
+  if (!state.experiments.length) {
+    setText("sequenceMessage", "Add at least one experiment first.");
+    return;
+  }
+  const data = await apiPost("/api/generate", collectPayload());
+  byId("outputDirInput").value = data.output_dir;
+  setText("sequenceMessage", `Generated sequence: ${data.sequence_path}`);
+}
+async function startTraining() {
+  if (!state.experiments.length) {
+    setText("sequenceMessage", "Add at least one experiment first.");
+    return;
+  }
+  const data = await apiPost("/api/start", collectPayload());
+  byId("outputDirInput").value = data.output_dir;
+  setText("sequenceMessage", `${data.started ? "Started" : "Runner already active"} pid=${data.pid}. Output: ${data.output_dir}`);
+  setView("process");
+}
+function openTensorBoard() {
+  const snap = state.latestSnapshot || {};
+  const session = snap.session || {};
+  const port = byId("tensorboardPortInput").value || session.tensorboard_port || "1230";
+  const url = session.tensorboard_url || `http://localhost:${port}`;
+  window.open(url, "_blank", "noopener");
+}
+async function refreshStatus() {
+  const outputDir = byId("outputDirInput").value;
+  if (!outputDir) return;
+  try {
+    const snap = await apiGet(`/api/snapshot?output_dir=${encodeURIComponent(outputDir)}`);
+    const session = snap.session || {};
+    let status = `${session.status || "idle"} · ${session.completed_experiments || 0}/${session.total_experiments || 0}`;
+    if (session.current_experiment_name) status += ` · current: ${session.current_experiment_name}`;
+    if (session.report_path) status += ` · report: ${session.report_path}`;
+    setText("runStatus", status);
+    if (session.tensorboard_port) byId("tensorboardPortInput").value = session.tensorboard_port;
+    renderResults(snap);
+    updateProcessSummary(snap);
+    drawCurves(snap);
+  } catch (err) {
+    setText("runStatus", err.message);
+  }
+}
+
+byId("loadScalesBtn").addEventListener("click", () => loadScales().catch(err => setText("loadMessage", err.message)));
+byId("loadJsonBtn").addEventListener("click", () => loadJson().catch(err => setText("loadMessage", err.message)));
+byId("addExperimentBtn").addEventListener("click", () => { try { addExperiment(); } catch (err) { setText("addMessage", err.message); } });
+byId("generateBtn").addEventListener("click", () => generateSequence().catch(err => setText("sequenceMessage", err.message)));
+byId("startBtn").addEventListener("click", () => startTraining().catch(err => setText("sequenceMessage", err.message)));
+byId("tensorboardBtn").addEventListener("click", openTensorBoard);
+byId("topRewardBtn").addEventListener("click", () => {
+  state.sortResultsByScore = !state.sortResultsByScore;
+  byId("topRewardBtn").classList.toggle("active", state.sortResultsByScore);
+  renderResults(state.latestSnapshot || {experiments: []});
+});
+byId("rewardRangeBtn").addEventListener("click", openRangeModal);
+byId("rangeCloseBtn").addEventListener("click", closeRangeModal);
+byId("rangeModalBackdrop").addEventListener("click", event => {
+  if (event.target === byId("rangeModalBackdrop")) closeRangeModal();
+});
+byId("expViewsBtn").addEventListener("click", openExpViews);
+byId("viewsCloseBtn").addEventListener("click", closeExpViews);
+byId("viewsModalBackdrop").addEventListener("click", event => {
+  if (event.target === byId("viewsModalBackdrop")) closeExpViews();
+});
+byId("viewsDeleteBtn").addEventListener("click", deleteSelectedViewExperiments);
+byId("rangeGenerateBtn").addEventListener("click", () => {
+  try {
+    generateRangeExperiments();
+  } catch (err) {
+    setText("rangeMessage", err.message);
+  }
+});
+byId("taskSelect").addEventListener("change", () => { byId("groupInput").value = `${byId("taskSelect").value}_PlanTune`; });
+byId("configViewBtn").addEventListener("click", () => setView("config"));
+byId("processViewBtn").addEventListener("click", () => setView("process"));
+setupSequenceResizers();
+setInterval(refreshStatus, 3000);
+init();
+</script>
+</body>
+</html>
